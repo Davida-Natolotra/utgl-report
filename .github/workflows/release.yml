@@ -1,0 +1,37 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'v*' # Triggers when you push a version tag like v1.0.0
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ macos-latest, windows-latest ] # Runs on both Mac and Windows clouds!
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          target: ${{ matrix.platform == 'windows-latest' && 'x86_64-pc-windows-msvc' || '' }}
+
+      - name: Install Frontend Dependencies
+        run: yarn install
+
+      - name: Build and Package App
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          tagMessage: 'Release ${{ github.ref_name }}'
